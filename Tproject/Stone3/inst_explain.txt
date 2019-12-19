@@ -1,0 +1,53 @@
+
+이미 있는 명령어: add, addu, addi, addiu, sub, subu, and, or, ori,slt, lui, lw, sw, beq and j
+
+추가할 명령어: sltu, bnez, jal, jr
+
+bnez : 레지스터가 가진 값이 0이 아니면 브랜치, bne를 이용한 pseudocode인듯
+
+
+sltu:
+
+Description: If $s is less than $t, $d is set to one. It gets zero otherwise.
+Operation: if $s < $t $d = 1; advance_pc (4); else $d = 0; advance_pc (4);
+
+Syntax: sltu $d, $s, $t
+
+Encoding: 0000 00ss ssst tttt dddd d000 0010 1011
+
+
+
+
+bne:
+
+Description: Branches if the two registers are not equal
+Operation: if $s != $t advance_pc (offset << 2)); else advance_pc (4);
+
+Syntax: bne $s, $t, offset
+
+Encoding: 0001 01ss ssst tttt iiii iiii iiii iiii
+
+
+
+
+jal:
+
+Description: Jumps to the calculated address and stores the return address in $31
+Operation: $31 = PC + 8 (or nPC + 4); PC = nPC; nPC = (PC & 0xf0000000) | (target << 2);
+
+Syntax: jal target
+
+Encoding: 0000 11ii iiii iiii iiii iiii iiii iiii
+
+
+
+
+jr:
+
+Description: Jump to the address contained in register $s
+
+Operation: PC = nPC; nPC = $s;
+
+Syntax: jr $s
+
+Encoding: 0000 00ss sss0 0000 0000 0000 0000 1000

@@ -1,0 +1,12 @@
+수정된 부분을(마일스톤 4 -> 마일스톤 5) 나타내는 코드 주석은
+
+ // ###### Jinseok Park: (Milestone 5)Start #######
+
+// ###### Jinseok Park: (Milestone 5)End #######
+
+
+// ###### Jinseok Park: (Milestone 5 part)Start #######
+
+// ###### Jinseok Park: (Milestone 5 part)End #######
+
+처럼 Milestone 5~~ 라는 글자가 써져있습니다. 이것이 없는 부분은 (마일스톤 3 -> 마일스톤 4)에서 추가된 부분입니다.

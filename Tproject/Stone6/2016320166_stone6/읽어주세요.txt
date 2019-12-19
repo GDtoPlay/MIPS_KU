@@ -1,0 +1,13 @@
+sltiu를 추가한 이유: 
+
+처음에 필요한줄 알고 추가했다가 나중에 그다지 필요가 없다는 것을 알았습니다.
+
+구현된 것을 지우기도 조금 그래서 남겨놓았습니다.
+
+
+
+sltiu의 signext 시그널을 1로 설정할 때 참고한 자료:
+
+https://stackoverflow.com/questions/29284428/in-mips-when-to-use-a-signed-extend-when-to-use-a-zero-extend
+
+여기를 참고하여 signext 시그널을 1로 설정했습니다.

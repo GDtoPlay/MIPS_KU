@@ -1,0 +1,222 @@
+what we should to add: sltu, bne(bnez), jal, jr
+
+
+
+
+diff control signal (for jal, bne)
+
+
+module maindec(input  [5:0] op,
+               output       signext,
+               output       shiftl16,
+               output       memtoreg, memwrite,
+               output       branch, alusrc, branchN,
+               output       regdst, regwrite,
+               output       jump, jumpAndLink,
+               output [1:0] aluop);
+
+  reg [12:0] controls;
+
+  assign {signext, shiftl16, regwrite, regdst, alusrc, branch, memwrite,
+          memtoreg, jump, aluop, branchN, jumpAndLink} = controls;
+
+  always @(*)
+    case(op)
+      6'b000000: controls <= #`mydelay 13'b0011000001100; // Rtype
+      6'b100011: controls <= #`mydelay 13'b1010100100000; // LW
+      6'b101011: controls <= #`mydelay 13'b1000101000000; // SW
+      6'b000100: controls <= #`mydelay 13'b1000010000100; // BEQ
+      6'b001000, 
+      6'b001001: controls <= #`mydelay 13'b1010100000000; // ADDI, ADDIU: only difference is exception
+      6'b001101: controls <= #`mydelay 13'b0010100001000; // ORI
+      6'b001111: controls <= #`mydelay 13'b0110100000000; // LUI
+      6'b000010: controls <= #`mydelay 13'b0000000010000; // J
+      6'b000101: controls <= #`mydelay 13'b1000010000110; // BNE   added
+      6'b000011: controls <= #`mydelay 13'b0010000010001; // JAL   added
+      default:   controls <= #`mydelay 13'bxxxxxxxxxxxxx; // ???
+    endcase
+
+endmodule
+
+
+
+
+
+
+diff alucontrol (for jr and sltu)
+ 
+module aludec(input      [5:0] funct,
+              input      [1:0] aluop,
+              output reg [3:0] alucontrol,
+				  output reg disregwrite);
+
+  always @(*) begin
+    case(aluop)
+      2'b00: alucontrol <= #`mydelay 4'b0010;  // add
+      2'b01: alucontrol <= #`mydelay 4'b0110;  // sub
+      2'b10: alucontrol <= #`mydelay 4'b0001;  // or
+      default: case(funct)          // RTYPE
+          6'b001000: alucontrol <= #`mydelay 4'b1010; // JR  need addition with rs and $zero
+          6'b100000,
+          6'b100001: alucontrol <= #`mydelay 4'b0010; // ADD, ADDU: only difference is exception
+          6'b100010,
+          6'b100011: alucontrol <= #`mydelay 4'b0110; // SUB, SUBU: only difference is exception
+          6'b100100: alucontrol <= #`mydelay 4'b0000; // AND
+          6'b100101: alucontrol <= #`mydelay 4'b0001; // OR
+          6'b101010: alucontrol <= #`mydelay 4'b0111; // SLT
+          6'b101011: alucontrol <= #`mydelay 4'b1111; // SLTU
+          default:   alucontrol <= #`mydelay 4'bxxxx; // ???
+        endcase
+    endcase	 
+	 if (aluop == 2'b11 && funct == 6'b001000) begin
+	     disregwrite <= #`mydelay 1'b0;     // if JR do not write reg
+	 end
+	 else begin
+	     disregwrite <= #`mydelay 1'b1;     // else write reg
+	 end
+  end    
+endmodule
+
+
+
+
+what change in module controller (for bne and jr)
+
+module controller(input  [5:0] op, funct,
+                  input        zero,
+                  output       signext,
+                  output       shiftl16,
+                  output       memtoreg, memwrite,
+                  output       pcsrc, alusrc,
+                  output       regdst, regwrite,
+                  output       jump, jumpAndLink,
+                  output [3:0] alucontrol);
+
+  wire [1:0] aluop;
+  wire       branch;
+  wire     branchN;      //for bne 
+  wire       prePCsrc0;    //beq
+  wire       prePCsrc1;    //bne
+  wire       preregwrite;  //original regwrite signal
+  wire       disregwrite;  //JR need control regwrite signal (1 -> 0)
+
+  maindec md(
+    .op       (op),
+    .signext  (signext),
+    .shiftl16 (shiftl16),
+    .memtoreg (memtoreg),
+    .memwrite (memwrite),
+    .branch   (branch),
+    .alusrc   (alusrc),
+    .regdst   (regdst),
+    .regwrite (preregwrite),
+    .jump     (jump),
+    .aluop    (aluop),
+   .branchN  (branchN),
+   .jumpAndLink     (jumpAndLink));
+
+  aludec ad( 
+    .funct      (funct),
+    .aluop      (aluop), 
+    .alucontrol (alucontrol),
+   .disregwrite(disregwrite));
+
+  assign prePCsrc0 = branch & zero;     //beq
+  assign prePCsrc1 = branch & ~zero;    //bne
+  assign pcsrc = branchN ? prePCsrc1 : prePCsrc0;    // 0: beq, 1: bne
+  assign regwrite = preregwrite & disregwrite;       // if jr regwrite should be zero
+
+endmodule
+
+
+
+
+
+
+what i changed for sltu
+
+alu diff
+
+module alu(input      [31:0] a, b, 
+           input      [3:0]  alucont, 
+           output reg [31:0] result,
+           output            zero);
+
+  wire [31:0] b2, sum, slt, sltu, Fslt;
+  wire        N, Z, C, V;
+
+  assign b2 = alucont[2] ? ~b:b; 
+
+  adder_32bit iadder32 (.a   (a),
+                                    .b   (b2),
+		       .cin (alucont[2]),
+		       .sum (sum),
+		        .N   (N),
+		        .Z   (Z),
+		        .C   (C),
+		        .V   (V));
+
+  // signed less than ("N set and V clear" OR "N clear and V set")
+  assign slt  = N ^ V ; 
+
+  // unsigned lower (C clear) 
+  assign sltu = ~C ;
+
+  assign Fslt = (alucont[3] == 1) ? {31'b0, sltu[0]}:{31'b0, slt[0]};   //sltu:1, slt: 0
+
+  always@(*)
+    case(alucont[1:0])
+      2'b00: result <= #`mydelay a & b;
+      2'b01: result <= #`mydelay a | b;
+      2'b10: result <= #`mydelay sum;
+      2'b11: result <= #`mydelay Fslt;
+    endcase
+
+  assign #`mydelay zero = (result == 32'b0);
+
+endmodule
+
+
+
+
+
+
+
+added mux
+
+  jal
+
+  mux2 #(5) jalregmux(     //added for jal, where to save, 0: rt or rd(decided before this), 1: 11111($ra)
+    .d0  (writeregdst),
+    .d1  (5'b11111),
+    .s   (jumpAndLink),
+    .y   (writereg));
+
+
+
+  mux2 #(32) jalsavemux(     //added for jal, what to save, 0: aluout or readdata(decided before this), 1: pc + 4
+    .d0 (resultPre),
+    .d1 (pcplus4),
+    .s  (jumpAndLink),
+    .y  (result));
+
+
+
+
+
+  jr
+
+  jrmux jrpcmux(    //added for jr, 1010: $ra + $zero, else: pc + 4
+    .d0  (pcplus4),
+    .d1  (aluout),
+    .alucontrol   (alucontrol),
+    .y   (pcbefornext));
+
+
+module jrmux (input  [31:0] d0, d1, 
+              input  [3:0]  alucontrol, 
+              output [31:0] y);
+
+  assign #`mydelay y = (alucontrol[3:0] == 4'b1010) ? d1 : d0; 
+
+endmodule

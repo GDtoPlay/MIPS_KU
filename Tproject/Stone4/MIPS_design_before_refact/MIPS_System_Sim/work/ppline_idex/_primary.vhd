@@ -1,0 +1,40 @@
+library verilog;
+use verilog.vl_types.all;
+entity ppline_idex is
+    port(
+        clk             : in     vl_logic;
+        reset           : in     vl_logic;
+        pc_plus4_d      : in     vl_logic_vector(31 downto 0);
+        rd1_d           : in     vl_logic_vector(31 downto 0);
+        rd2_d           : in     vl_logic_vector(31 downto 0);
+        immex_d         : in     vl_logic_vector(31 downto 0);
+        instr_d         : in     vl_logic_vector(31 downto 0);
+        rs_d            : in     vl_logic_vector(4 downto 0);
+        rt_d            : in     vl_logic_vector(4 downto 0);
+        rd_d            : in     vl_logic_vector(4 downto 0);
+        shiftl16_d      : in     vl_logic;
+        regdst_d        : in     vl_logic;
+        alucontrol_d    : in     vl_logic_vector(3 downto 0);
+        alusrc_d        : in     vl_logic;
+        memwrite_d      : in     vl_logic;
+        jumpAndLink_d   : in     vl_logic;
+        regwrite_d      : in     vl_logic;
+        memtoreg_d      : in     vl_logic;
+        pc_plus4        : out    vl_logic_vector(31 downto 0);
+        rd1             : out    vl_logic_vector(31 downto 0);
+        rd2             : out    vl_logic_vector(31 downto 0);
+        immex           : out    vl_logic_vector(31 downto 0);
+        instr           : out    vl_logic_vector(31 downto 0);
+        rs              : out    vl_logic_vector(4 downto 0);
+        rt              : out    vl_logic_vector(4 downto 0);
+        rd              : out    vl_logic_vector(4 downto 0);
+        shiftl16        : out    vl_logic;
+        regdst          : out    vl_logic;
+        alucontrol      : out    vl_logic_vector(3 downto 0);
+        alusrc          : out    vl_logic;
+        memwrite        : out    vl_logic;
+        jumpAndLink     : out    vl_logic;
+        regwrite        : out    vl_logic;
+        memtoreg        : out    vl_logic
+    );
+end ppline_idex;
